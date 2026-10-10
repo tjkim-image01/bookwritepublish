@@ -1,0 +1,138 @@
+{
+ "id": "j001",
+ "title": "강하고 담대하라, 여호수아",
+ "subtitle": "성경 여호수아 이야기",
+ "version": "v0.1",
+ "pageCount": 30,
+ "aspect": 1.0,
+ "pages": [
+  "pages/p01.jpg",
+  "pages/p02.jpg",
+  "pages/p03.jpg",
+  "pages/p04.jpg",
+  "pages/p05.jpg",
+  "pages/p06.jpg",
+  "pages/p07.jpg",
+  "pages/p08.jpg",
+  "pages/p09.jpg",
+  "pages/p10.jpg",
+  "pages/p11.jpg",
+  "pages/p12.jpg",
+  "pages/p13.jpg",
+  "pages/p14.jpg",
+  "pages/p15.jpg",
+  "pages/p16.jpg",
+  "pages/p17.jpg",
+  "pages/p18.jpg",
+  "pages/p19.jpg",
+  "pages/p20.jpg",
+  "pages/p21.jpg",
+  "pages/p22.jpg",
+  "pages/p23.jpg",
+  "pages/p24.jpg",
+  "pages/p25.jpg",
+  "pages/p26.jpg",
+  "pages/p27.jpg",
+  "pages/p28.jpg",
+  "pages/p29.jpg",
+  "pages/p30.jpg"
+ ],
+ "states": [
+  {
+   "k": 0,
+   "label": "강하고 담대하라, 여호수아",
+   "pages": "1",
+   "audio": "audio/s00.mp3"
+  },
+  {
+   "k": 1,
+   "label": "속표지",
+   "pages": "2-3",
+   "audio": "audio/s01.mp3"
+  },
+  {
+   "k": 2,
+   "label": "하나님의 부르심",
+   "pages": "4-5",
+   "audio": "audio/s02.mp3"
+  },
+  {
+   "k": 3,
+   "label": "여리고로 간 두 사람",
+   "pages": "6-7",
+   "audio": "audio/s03.mp3"
+  },
+  {
+   "k": 4,
+   "label": "창문에 맨 붉은 줄",
+   "pages": "8-9",
+   "audio": "audio/s04.mp3"
+  },
+  {
+   "k": 5,
+   "label": "요단강에 발을 디디면",
+   "pages": "10-11",
+   "audio": "audio/s05.mp3"
+  },
+  {
+   "k": 6,
+   "label": "마른 땅으로 건너요",
+   "pages": "12-13",
+   "audio": "audio/s06.mp3"
+  },
+  {
+   "k": 7,
+   "label": "열두 개의 기념 돌",
+   "pages": "14-15",
+   "audio": "audio/s07.mp3"
+  },
+  {
+   "k": 8,
+   "label": "하나님의 군대 대장",
+   "pages": "16-17",
+   "audio": "audio/s08.mp3"
+  },
+  {
+   "k": 9,
+   "label": "조용히 성을 돌아요",
+   "pages": "18-19",
+   "audio": "audio/s09.mp3"
+  },
+  {
+   "k": 10,
+   "label": "일곱째 날",
+   "pages": "20-21",
+   "audio": "audio/s10.mp3"
+  },
+  {
+   "k": 11,
+   "label": "무너진 성벽",
+   "pages": "22-23",
+   "audio": "audio/s11.mp3"
+  },
+  {
+   "k": 12,
+   "label": "붉은 줄의 약속",
+   "pages": "24-25",
+   "audio": "audio/s12.mp3"
+  },
+  {
+   "k": 13,
+   "label": "해야, 머물러라!",
+   "pages": "26-27",
+   "audio": "audio/s13.mp3"
+  },
+  {
+   "k": 14,
+   "label": "나와 내 집은",
+   "pages": "28-29",
+   "audio": "audio/s14.mp3"
+  },
+  {
+   "k": 15,
+   "label": "함께 이야기해요",
+   "pages": "30",
+   "audio": "audio/s15.mp3"
+  }
+ ]
+}
