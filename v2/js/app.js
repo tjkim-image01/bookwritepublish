@@ -1,4 +1,5 @@
-// 그림책 3D 뷰어 — 책장(표지 목록) → 책을 누르면 앞으로 나와 펼쳐짐 → 쪽을 눌러 한 장씩 넘김 → 글이 있는 쪽은 자동 낭독
+// 그림책 3D 뷰어 v2 (모바일 대응) — v1 과 같은 동작 + 세로 화면에서는 한 쪽씩 보기·서재 넘겨 보기·스와이프
+// 세로 화면(가로/세로 < 0.9): 서재는 가운데 한 권 크게(좌우로 밀어 바꾸기), 책은 한 쪽씩 화면에 꽉 차게(오른쪽 쪽으로 옮겨 간 뒤 장 넘김)
 import * as THREE from '../vendor/three.module.js';
 
 // 사용자 요청(2026-10-10 수정): 오른쪽(아래 귀퉁이)을 누르면 다음 장, 왼쪽을 누르면 앞 장
@@ -16,9 +17,12 @@ const G = 0.0032;            // 낱장 사이 간격
 const T = 0.024;             // 표지 판 두께
 const SEGX = 48, SEGY = 48;  // 넘김 휨·귀퉁이 말림용 분할 수
 const TILTS = { front: 0, desk: -0.5 };   // 보기 모드: 정면 / 눕혀 보기(책상 위)
-const BAR_PX = 150;          // 하단 플레이어가 가리는 높이
+let barPx = 150;             // 하단 플레이어가 가리는 높이 (열 때마다 실제 높이를 잰다)
+const isPortrait = () => window.innerWidth / window.innerHeight < 0.9;   // 세로 화면 = 한 쪽씩 보기
+const SWIPE_PX = 40;
 
 const $ = (s) => document.querySelector(s);
+const BOOKS = '../books/';   // v1·v2 가 함께 쓰는 책장 (web/books)
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -84,7 +88,7 @@ class Book {
   constructor(meta, index) {
     this.meta = meta;
     this.index = index;
-    this.base = `books/${meta.id}/`;
+    this.base = `${BOOKS}${meta.id}/`;
     this.H = W / (meta.aspect || 1);
     this.N = Math.ceil(meta.pageCount / 2);   // 낱장 수 (앞뒤 2쪽)
     this.k = 0;                               // 넘긴 낱장 수 = 상태 번호
@@ -167,7 +171,7 @@ class Book {
   }
 
   async loadCover() {
-    const t = await loadTex(this.meta.cover);
+    const t = await loadTex(BOOKS + this.meta.cover);
     if (t) this.leaves[0].front.material = new THREE.MeshLambertMaterial({ map: t });
   }
 
@@ -296,18 +300,26 @@ const shelfCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 const readCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 let plank;
 
+let shelfIdx = 0;            // 세로 화면 서재에서 가운데 있는 책
+const shelfScale = () => (isPortrait() ? 1.0 : 0.7);
 function shelfPose(b) {
+  if (isPortrait()) {
+    const off = b.index - shelfIdx;
+    return { x: off * 0.95, y: 0.04 * b.hover - 3 * b.away, z: off === 0 ? 0.05 * b.hover : -0.5,
+             rx: 0, ry: off === 0 ? 0.12 * (1 - b.hover) : -0.5 * Math.sign(off), s: off === 0 ? 1.0 : 0.66 };
+  }
   const n = books.length, gap = 1.5;
-  return { x: (b.index - (n - 1) / 2) * gap, y: 0.05 * b.hover - 1.6 * b.away, z: 0.12 * b.hover,
+  return { x: (b.index - (n - 1) / 2) * gap, y: 0.05 * b.hover - 3 * b.away, z: 0.12 * b.hover,
            rx: 0, ry: 0.32 * (1 - b.hover), s: 0.7 };
 }
 const readPose = { x: 0, y: 0, z: 0, rx: 0, ry: 0, s: 1 };
 let viewMode = 'front';
 try { if (localStorage.getItem('bw.view') === 'desk') viewMode = 'desk'; } catch { /* 기본 정면 */ }
-const view = { tilt: TILTS[viewMode] };
+const view = { tilt: TILTS[viewMode], side: 'L', focusX: 0 };   // side: 한 쪽씩 볼 때 보고 있는 쪽
 
 function applyPose(b) {
-  readPose.rx = view.tilt;
+  readPose.rx = isPortrait() ? 0 : view.tilt;     // 한 쪽씩 보기는 항상 정면
+  b.root.visible = b.away < 0.98;
   const a = shelfPose(b), r = readPose, t = b.open;
   b.root.position.set(lerp(a.x, r.x, t), lerp(a.y, r.y, t), lerp(a.z, r.z, t));
   b.root.rotation.set(lerp(a.rx, r.rx, t), lerp(a.ry, r.ry, t), 0);
@@ -329,13 +341,17 @@ function layout() {
   // 책장: 모든 책 + 여백이 들어오게
   const n = Math.max(books.length, 1);
   const H = books[0]?.H || 1;
-  const shelfW = (n - 1) * 1.5 + 1.4;
-  const dShelf = Math.max(shelfW * 1.25 / 2 / tanH, (H * 2.0) / 2 / tanV);
-  shelfCam.pos.set(0, 0.12, dShelf);
-  shelfCam.look.set(0, -0.02, 0);
-  if (plank) {
-    plank.scale.x = Math.max(shelfW + 0.6, 2.4);
+  let shelfW = (n - 1) * 1.5 + 1.4;
+  let dShelf = Math.max(shelfW * 1.25 / 2 / tanH, (H * 2.0) / 2 / tanV);
+  if (isPortrait()) {                 // 가운데 책이 화면 폭을 채우고 양옆 책이 살짝 보이게
+    shelfW = 1.25;
+    dShelf = Math.max(shelfW / 2 / tanH, (H * 1.9) / 2 / tanV);
   }
+  shelfCam.pos.set(0, 0.12, dShelf);
+  shelfCam.look.set(0, -0.06, 0);
+  if (plank) plank.scale.x = isPortrait() ? 3.2 : Math.max(shelfW + 0.6, 2.4);
+  if (ui.player && !ui.player.hidden) barPx = ui.player.getBoundingClientRect().height + 24;
+  updateDots();
 
   updateReadCam();
 }
@@ -346,17 +362,28 @@ function updateReadCam() {
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   const tanH = tanV * camera.aspect;
   const H = books[0]?.H || 1;
-  const m = Math.min(1, view.tilt / TILTS.desk);          // 0 정면 → 1 눕힘
-  const frac = Math.max(0.45, (h - BAR_PX - 20) / h);
-  const dW = (2 * W * lerp(1.1, 1.4, m)) / 2 / tanH;
-  const dH = (H * Math.cos(view.tilt) * lerp(1.08, 1.3, m)) / 2 / (tanV * frac);
+  const single = isPortrait();
+  const tilt = single ? 0 : view.tilt;
+  const m = Math.min(1, tilt / TILTS.desk);               // 0 정면 → 1 눕힘
+  const frac = Math.max(0.45, (h - barPx - 16) / h);
+  const dW = (single ? W * 1.04 : 2 * W * lerp(1.1, 1.4, m)) / 2 / tanH;
+  const dH = (H * Math.cos(tilt) * (single ? 1.03 : lerp(1.08, 1.3, m))) / 2 / (tanV * frac);
   const d = Math.max(dW, dH);
-  const shift = (BAR_PX / 2 / h) * 2 * d * tanV;
-  readCam.pos.set(0, -shift, d);
-  readCam.look.set(0, -shift, 0);
+  const shift = (barPx / 2 / h) * 2 * d * tanV;
+  readCam.pos.set(view.focusX, -shift, d);
+  readCam.look.set(view.focusX, -shift, 0);
+}
+
+function focusTarget() {
+  if (!active || !isPortrait()) return 0;
+  const ix = active.inner.position.x;
+  if (active.k === 0) return ix + W / 2;           // 닫힌 표지
+  if (active.k === active.N) return ix - W / 2;    // 마지막 쪽
+  return ix + (view.side === 'L' ? -W / 2 : W / 2);
 }
 
 function updateCamera() {
+  view.focusX = lerp(view.focusX, focusTarget(), 0.12);
   const t = active ? active.open : 0;
   updateReadCam();
   camera.position.lerpVectors(shelfCam.pos, readCam.pos, t);
@@ -366,9 +393,24 @@ function updateCamera() {
 
 // ------------------------------------------------------------------ 책 이름표
 const labelsEl = $('#labels');
+const dotsEl = document.getElementById('dots');
+function updateDots() {
+  if (!dotsEl) return;
+  const show = isPortrait() && books.length > 1 && mode === 'shelf';
+  dotsEl.hidden = !show;
+  if (!show) return;
+  if (dotsEl.children.length !== books.length) {
+    dotsEl.innerHTML = '';
+    books.forEach((b, i) => { const d = document.createElement('button'); d.setAttribute('aria-label', `${i + 1}번째 책`); d.addEventListener('click', () => { shelfIdx = i; updateDots(); }); dotsEl.appendChild(d); });
+  }
+  [...dotsEl.children].forEach((d, i) => d.classList.toggle('on', i === shelfIdx));
+}
+
 function updateLabels() {
+  const portrait = isPortrait();
   for (const b of books) {
-    const p = new THREE.Vector3(b.root.position.x, plank.position.y - 0.05, 0.3);
+    b.label.style.display = portrait && b.index !== shelfIdx ? 'none' : '';
+    const p = new THREE.Vector3(isPortrait() ? 0 : b.root.position.x, plank.position.y - 0.05, 0.3);
     p.project(camera);
     b.label.style.left = `${(p.x * 0.5 + 0.5) * window.innerWidth}px`;
     b.label.style.top = `${(-p.y * 0.5 + 0.5) * window.innerHeight}px`;
@@ -424,7 +466,13 @@ audio.addEventListener('ended', () => {
   ui.play.classList.remove('playing');
   if (ui.optTurn.checked && mode === 'reading' && active && active.k < active.N) {
     const k = active.k;
-    turnTimer = setTimeout(() => { if (active && active.k === k && mode === 'reading') go(+1); }, CONFIG.autoTurnDelay);
+    turnTimer = setTimeout(() => {
+      if (!active || active.k !== k || mode !== 'reading') return;
+      if (isPortrait() && view.side === 'L' && k >= 1) {
+        go(+1);
+        turnTimer = setTimeout(() => { if (active && active.k === k && view.side === 'R' && mode === 'reading') go(+1); }, 3500);
+      } else go(+1);
+    }, CONFIG.autoTurnDelay);
   }
 });
 ui.seek.addEventListener('input', () => {
@@ -436,7 +484,12 @@ function refreshPlayer() {
   const st = active.state();
   const { k, N } = active;
   ui.label.textContent = st?.label || (k === 0 ? '표지' : '');
-  ui.count.textContent = st?.pages ? `${st.pages} / ${active.meta.pageCount}쪽` : '';
+  if (isPortrait() && k >= 1 && k < N) {
+    const pg = view.side === 'L' ? 2 * k : 2 * k + 1;
+    ui.count.textContent = `${pg} / ${active.meta.pageCount}쪽`;
+  } else {
+    ui.count.textContent = st?.pages ? `${st.pages} / ${active.meta.pageCount}쪽` : '';
+  }
   ui.prev.disabled = k === 0;
   ui.next.disabled = k === N;
   ui.first.disabled = k === 0;
@@ -457,10 +510,22 @@ function onStateChanged(flipPromise) {
   });
 }
 
+function updatePageCount() {
+  if (!active) return;
+  const { k, N } = active;
+  if (isPortrait() && k >= 1 && k < N) ui.count.textContent = `${view.side === 'L' ? 2 * k : 2 * k + 1} / ${active.meta.pageCount}쪽`;
+}
+
 function go(dir) {
   if (!active || mode !== 'reading') return;
+  // 세로 화면: 같은 펼침면 안에서는 왼쪽 쪽 ↔ 오른쪽 쪽으로 카메라만 옮긴다 (낭독은 이어서)
+  if (isPortrait() && active.k >= 1 && active.k < active.N) {
+    if (dir > 0 && view.side === 'L') { view.side = 'R'; updatePageCount(); return; }
+    if (dir < 0 && view.side === 'R') { view.side = 'L'; updatePageCount(); return; }
+  }
   const p = active.flip(dir);
   if (!p) { showHint(dir > 0 ? '마지막 쪽이에요' : '첫 쪽이에요', 1400); return; }
+  view.side = dir > 0 ? 'L' : 'R';
   onStateChanged(p);
 }
 
@@ -470,6 +535,7 @@ async function goFirst() {
   let last;
   while (active.k > 1) { last = active.flip(-1, 520); await sleep(70); }
   await last;
+  view.side = 'L';
   onStateChanged(null);
 }
 
@@ -490,6 +556,8 @@ async function openBook(b) {
   if (mode !== 'shelf') return;
   mode = 'opening';
   active = b;
+  shelfIdx = b.index;
+  updateDots();
   b.hoverTarget = 0;
   document.body.classList.add('reading');
   if (!b.loaded) {
@@ -503,13 +571,16 @@ async function openBook(b) {
     for (const o of books) if (o !== b) o.away = e;
   });
   mode = 'reading';
+  view.side = 'L';
   ui.player.hidden = false;
+  requestAnimationFrame(layout);
   refreshPlayer();
   await sleep(120);
   go(+1);   // 표지를 넘겨 첫 펼침면으로
   const L = CONFIG.leftClick === 'next' ? '다음' : '앞';
   const R = CONFIG.rightClick === 'next' ? '다음' : '앞';
-  showHint(`오른쪽 아래를 누르면 ${R} 장, 왼쪽 아래를 누르면 ${L} 장으로 넘어가요`);
+  showHint(isPortrait() ? '오른쪽을 누르거나 왼쪽으로 밀면 다음 쪽이에요'
+                        : `오른쪽 아래를 누르면 ${R} 장, 왼쪽 아래를 누르면 ${L} 장으로 넘어가요`);
 }
 
 async function closeBook() {
@@ -528,6 +599,7 @@ async function closeBook() {
   document.body.classList.remove('reading');
   active = null;
   mode = 'shelf';
+  updateDots();
 }
 
 // ================================================================== 입력
@@ -546,14 +618,30 @@ function pick(ev) {
 let downAt = null;
 canvas.addEventListener('pointerdown', (ev) => { downAt = { x: ev.clientX, y: ev.clientY }; });
 canvas.addEventListener('pointerup', (ev) => {
-  if (!downAt || Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y) > 8) return;
+  if (!downAt) return;
+  const dx = ev.clientX - downAt.x, dy = ev.clientY - downAt.y;
   downAt = null;
-  const hit = pick(ev);
-  if (mode === 'shelf') {
-    if (hit?.book) openBook(hit.book);
+  // 스와이프: 왼쪽으로 밀면 다음, 오른쪽으로 밀면 앞 (서재에서는 다른 책)
+  if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.3) {
+    if (mode === 'shelf' && isPortrait()) { shelfIdx = Math.max(0, Math.min(books.length - 1, shelfIdx + (dx < 0 ? 1 : -1))); updateDots(); }
+    else if (mode === 'reading') go(dx < 0 ? +1 : -1);
     return;
   }
-  if (mode !== 'reading' || !hit || hit.book !== active) return;
+  if (Math.hypot(dx, dy) > 8) return;
+  const hit = pick(ev);
+  if (mode === 'shelf') {
+    if (!hit?.book) return;
+    if (isPortrait() && hit.book.index !== shelfIdx) { shelfIdx = hit.book.index; updateDots(); return; }
+    openBook(hit.book);
+    return;
+  }
+  if (mode !== 'reading') return;
+  if (isPortrait()) {                         // 세로 화면: 화면 오른쪽 반 = 다음, 왼쪽 반 = 앞
+    if (active.k === 0) { go(+1); return; }
+    go(ev.clientX > window.innerWidth / 2 ? +1 : -1);
+    return;
+  }
+  if (!hit || hit.book !== active) return;
   if (active.k === 0) { go(+1); return; }             // 닫힌 표지는 어디를 눌러도 펼친다
   const local = active.inner.worldToLocal(hit.point.clone());
   const act = local.x < 0 ? CONFIG.leftClick : CONFIG.rightClick;
@@ -604,10 +692,12 @@ window.addEventListener('keydown', (ev) => {
   ev.preventDefault();
 });
 window.addEventListener('resize', layout);
+window.visualViewport?.addEventListener('resize', layout);      // 모바일 주소창이 접히고 펴질 때
+window.addEventListener('orientationchange', () => setTimeout(layout, 300));
 
 // ================================================================== 시작
 async function init() {
-  const list = await (await fetch('books/index.json', { cache: 'no-cache' })).json();
+  const list = await (await fetch(BOOKS + 'index.json', { cache: 'no-cache' })).json();
   plank = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 0.55), new THREE.MeshLambertMaterial({ color: 0x9a6a3e }));
   plank.position.z = 0;
   scene.add(plank);
@@ -633,7 +723,7 @@ async function init() {
     const t = active ? active.open : 0;
     plank.visible = t < 0.98;
     plank.position.z = -0.05 - t * 0.5;
-    plank.position.y = -((books[0]?.H || 1) * 0.7) / 2 - 0.03 - t * 1.2;
+    plank.position.y = -((books[0]?.H || 1) * shelfScale()) / 2 - 0.03 - t * 1.2;
     updateCamera();
     updateLabels();
     renderer.render(scene, camera);

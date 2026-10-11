@@ -1,10 +1,14 @@
-# 그림책 서재 (BookWrite Publish)
+# 그림책 서재
 
-Three.js 기반 3D 그림책 웹 뷰어 및 낭독 플레이어입니다.
+성경 이야기 어린이 그림동화 3D 뷰어 (Three.js). 책을 눌러 펼치고, 넘기면 글이 있는 쪽은 자동으로 읽어 줍니다.
 
-- **온라인 뷰어**: [https://tjkim-image01.github.io/bookwritepublish/](https://tjkim-image01.github.io/bookwritepublish/)
-- **기능**:
-  - 3D 서재 / 책장 인터랙션
-  - 책 펼치기 및 페이지 넘김 효과
-  - 문맥 음성(MP3) 자동 낭독 지원
-  - 정면 보기 / 눕혀서 보기(책상 모드) 전환
+| 주소 | 내용 |
+|------|------|
+| `/` | 버전 안내 |
+| `/v1/` | PC·태블릿 — 펼침면 보기 (오른쪽 누르면 다음 장, 왼쪽 누르면 앞 장) |
+| `/v2/` | 모바일 대응 — 세로 화면은 한 쪽씩 크게, 좌우로 밀어 넘김 |
+| `/books/` | v1·v2 가 함께 쓰는 책 데이터 (쪽 그림·낭독·book.json) |
+
+- 이 저장소는 비공개 제작 저장소 `bookwrite` 의 `web/` 폴더를 그대로 올린 것입니다. 여기서 직접 고치지 마세요.
+- 로컬 실행: `web/bin/start.sh` → http://localhost:8710/
+- 글꼴: 나눔스퀘어라운드 (SIL OFL 1.1, `v1/fonts/LICENSE.txt`) · 3D: three.js r160 (MIT)

@@ -1,0 +1,138 @@
+{
+ "id": "j002",
+ "title": "하늘의 별을 세어 보아라, 아브라함",
+ "subtitle": "믿음의 조상 아브라함 이야기",
+ "version": "v0.1",
+ "pageCount": 30,
+ "aspect": 1.0,
+ "pages": [
+  "pages/p01.jpg",
+  "pages/p02.jpg",
+  "pages/p03.jpg",
+  "pages/p04.jpg",
+  "pages/p05.jpg",
+  "pages/p06.jpg",
+  "pages/p07.jpg",
+  "pages/p08.jpg",
+  "pages/p09.jpg",
+  "pages/p10.jpg",
+  "pages/p11.jpg",
+  "pages/p12.jpg",
+  "pages/p13.jpg",
+  "pages/p14.jpg",
+  "pages/p15.jpg",
+  "pages/p16.jpg",
+  "pages/p17.jpg",
+  "pages/p18.jpg",
+  "pages/p19.jpg",
+  "pages/p20.jpg",
+  "pages/p21.jpg",
+  "pages/p22.jpg",
+  "pages/p23.jpg",
+  "pages/p24.jpg",
+  "pages/p25.jpg",
+  "pages/p26.jpg",
+  "pages/p27.jpg",
+  "pages/p28.jpg",
+  "pages/p29.jpg",
+  "pages/p30.jpg"
+ ],
+ "states": [
+  {
+   "k": 0,
+   "label": "하늘의 별을 세어 보아라, 아브라함",
+   "pages": "1",
+   "audio": "audio/s00.mp3"
+  },
+  {
+   "k": 1,
+   "label": "속표지",
+   "pages": "2-3",
+   "audio": "audio/s01.mp3"
+  },
+  {
+   "k": 2,
+   "label": "하나님의 부르심",
+   "pages": "4-5",
+   "audio": "audio/s02.mp3"
+  },
+  {
+   "k": 3,
+   "label": "믿음으로 길을 떠나요",
+   "pages": "6-7",
+   "audio": "audio/s03.mp3"
+  },
+  {
+   "k": 4,
+   "label": "롯에게 먼저 고르게 해요",
+   "pages": "8-9",
+   "audio": "audio/s04.mp3"
+  },
+  {
+   "k": 5,
+   "label": "하늘의 별을 세어 보아라",
+   "pages": "10-11",
+   "audio": "audio/s05.mp3"
+  },
+  {
+   "k": 6,
+   "label": "새 이름을 주셨어요",
+   "pages": "12-13",
+   "audio": "audio/s06.mp3"
+  },
+  {
+   "k": 7,
+   "label": "세 손님",
+   "pages": "14-15",
+   "audio": "audio/s07.mp3"
+  },
+  {
+   "k": 8,
+   "label": "사라가 웃었어요",
+   "pages": "16-17",
+   "audio": "audio/s08.mp3"
+  },
+  {
+   "k": 9,
+   "label": "이삭이 태어났어요",
+   "pages": "18-19",
+   "audio": "audio/s09.mp3"
+  },
+  {
+   "k": 10,
+   "label": "모리아 산으로",
+   "pages": "20-21",
+   "audio": "audio/s10.mp3"
+  },
+  {
+   "k": 11,
+   "label": "하나님이 준비하셨어요",
+   "pages": "22-23",
+   "audio": "audio/s11.mp3"
+  },
+  {
+   "k": 12,
+   "label": "별처럼, 모래처럼",
+   "pages": "24-25",
+   "audio": "audio/s12.mp3"
+  },
+  {
+   "k": 13,
+   "label": "우물가의 리브가",
+   "pages": "26-27",
+   "audio": "audio/s13.mp3"
+  },
+  {
+   "k": 14,
+   "label": "믿음의 조상",
+   "pages": "28-29",
+   "audio": "audio/s14.mp3"
+  },
+  {
+   "k": 15,
+   "label": "함께 이야기해요",
+   "pages": "30",
+   "audio": "audio/s15.mp3"
+  }
+ ]
+}

@@ -3,7 +3,15 @@
   "id": "j001",
   "title": "강하고 담대하라, 여호수아",
   "subtitle": "성경 여호수아 이야기",
-  "cover": "books/j001/pages/p01.jpg",
+  "cover": "j001/pages/p01.jpg",
+  "pageCount": 30,
+  "aspect": 1.0
+ },
+ {
+  "id": "j002",
+  "title": "하늘의 별을 세어 보아라, 아브라함",
+  "subtitle": "믿음의 조상 아브라함 이야기",
+  "cover": "j002/pages/p01.jpg",
   "pageCount": 30,
   "aspect": 1.0
  }
