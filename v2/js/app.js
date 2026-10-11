@@ -19,6 +19,8 @@ const SEGX = 48, SEGY = 48;  // 넘김 휨·귀퉁이 말림용 분할 수
 const TILTS = { front: 0, desk: -0.5 };   // 보기 모드: 정면 / 눕혀 보기(책상 위)
 let barPx = 150;             // 하단 플레이어가 가리는 높이 (열 때마다 실제 높이를 잰다)
 const isPortrait = () => window.innerWidth / window.innerHeight < 0.9;   // 세로 화면 = 한 쪽씩 보기
+// 모바일: 터치 기기이거나 작은 화면 → 하단 플레이어를 숨기고 책을 화면에 꽉 채운다 (2026-10-11 요청)
+const isMobile = () => window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 640 || window.innerHeight <= 500;
 const SWIPE_PX = 40;
 
 const $ = (s) => document.querySelector(s);
@@ -350,7 +352,9 @@ function layout() {
   shelfCam.pos.set(0, 0.12, dShelf);
   shelfCam.look.set(0, -0.06, 0);
   if (plank) plank.scale.x = isPortrait() ? 3.2 : Math.max(shelfW + 0.6, 2.4);
-  if (ui.player && !ui.player.hidden) barPx = ui.player.getBoundingClientRect().height + 24;
+  document.body.classList.toggle('mobile', isMobile());
+  if (isMobile()) barPx = 0;
+  else if (ui.player && !ui.player.hidden) barPx = ui.player.getBoundingClientRect().height + 24;
   updateDots();
 
   updateReadCam();
@@ -365,10 +369,14 @@ function updateReadCam() {
   const single = isPortrait();
   const tilt = single ? 0 : view.tilt;
   const m = Math.min(1, tilt / TILTS.desk);               // 0 정면 → 1 눕힘
-  const frac = Math.max(0.45, (h - barPx - 16) / h);
-  const dW = (single ? W * 1.04 : 2 * W * lerp(1.1, 1.4, m)) / 2 / tanH;
-  const dH = (H * Math.cos(tilt) * (single ? 1.03 : lerp(1.08, 1.3, m))) / 2 / (tanV * frac);
-  const d = Math.max(dW, dH);
+  const mobile = isMobile();
+  const frac = mobile ? 1 : Math.max(0.45, (h - barPx - 16) / h);
+  // 모바일은 여백 없이 화면 폭(또는 높이)에 딱 맞춘다. 겹친 종이 두께(위 낱장이 카메라 쪽으로 약 0.05 앞)만큼 물러나 가장자리가 잘리지 않게
+  const mw = mobile ? 1.0 : single ? 1.04 : lerp(1.1, 1.4, m);
+  const mh = mobile ? 1.0 : single ? 1.03 : lerp(1.08, 1.3, m);
+  const dW = (single ? W : 2 * W) * mw / 2 / tanH;
+  const dH = (H * Math.cos(tilt) * mh) / 2 / (tanV * frac);
+  const d = Math.max(dW, dH) + (mobile ? 0.06 : 0);
   const shift = (barPx / 2 / h) * 2 * d * tanV;
   readCam.pos.set(view.focusX, -shift, d);
   readCam.look.set(view.focusX, -shift, 0);
@@ -678,6 +686,7 @@ ui.prev.addEventListener('click', () => go(-1));
 ui.next.addEventListener('click', () => go(+1));
 ui.first.addEventListener('click', goFirst);
 ui.shelf.addEventListener('click', closeBook);
+document.getElementById('btn-back')?.addEventListener('click', closeBook);
 ui.play.addEventListener('click', () => { if (audio.paused || audioKey !== `${active?.meta.id}:${active?.k}`) playCurrent(); else audio.pause(); });
 
 window.addEventListener('keydown', (ev) => {
