@@ -1,0 +1,17 @@
+{
+  "default": "stairs",
+  "designs": [
+    {
+      "id": "carousel",
+      "name": "보물 부두"
+    },
+    {
+      "id": "balloon",
+      "name": "갑판 도서관"
+    },
+    {
+      "id": "stairs",
+      "name": "해골섬 트레일"
+    }
+  ]
+}

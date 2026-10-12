@@ -1,7 +1,8 @@
-// 팝업북 3D 뷰어 v3 — v2(모바일 대응) + 팝업 레이어(js/popup.js). 팝업북 책장(web/books-popup)만 읽는다.
+// 팝업북 3D 뷰어 v3 — v2(모바일 대응) + 팝업 레이어(js/popup.js). 팝업북 책장(web/res/books-popup)만 읽는다.
 // (아래는 v2 설명) 그림책 3D 뷰어 v2 (모바일 대응) — v1 과 같은 동작 + 세로 화면에서는 한 쪽씩 보기·서재 넘겨 보기·스와이프
 // 세로 화면(가로/세로 < 0.9): 서재는 가운데 한 권 크게(좌우로 밀어 바꾸기), 책은 한 쪽씩 화면에 꽉 차게(오른쪽 쪽으로 옮겨 간 뒤 장 넘김)
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../../v1/vendor/three.module.js';
+import { HarborShelf } from '../../res/bookshelf/harbor.js';
 import { PopupLayers } from './popup.js';
 
 // 사용자 요청(2026-10-10 수정): 오른쪽(아래 귀퉁이)을 누르면 다음 장, 왼쪽을 누르면 앞 장
@@ -27,7 +28,7 @@ const isMobile = () => window.matchMedia('(pointer: coarse)').matches || window.
 const SWIPE_PX = 40;
 
 const $ = (s) => document.querySelector(s);
-const BOOKS = '../books-popup/';   // 팝업북 책장 (web/books-popup)
+const BOOKS = '../res/books-popup/';   // 팝업북 책장 (web/res/books-popup)
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -306,10 +307,12 @@ let mode = 'shelf';          // shelf | opening | reading | closing
 const shelfCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 const readCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 let plank;
+let harbor;
 
 let shelfIdx = 0;            // 세로 화면 서재에서 가운데 있는 책
 const shelfScale = () => (isPortrait() ? 1.0 : 0.7);
 function shelfPose(b) {
+  if (harbor) return harbor.pose(b.index, b.hover, b.away);
   if (isPortrait()) {
     const off = b.index - shelfIdx;
     return { x: off * 0.95, y: 0.04 * b.hover - 3 * b.away, z: off === 0 ? 0.05 * b.hover : -0.5,
@@ -365,6 +368,7 @@ function layout() {
   else if (ui.player && !ui.player.hidden) barPx = ui.player.getBoundingClientRect().height + 24;
   updateDots();
 
+  if (harbor) harbor.camera(shelfCam.pos, shelfCam.look, camera.aspect);
   updateReadCam();
 }
 
@@ -399,6 +403,7 @@ function focusTarget() {
 }
 
 function updateCamera() {
+  if (harbor) harbor.camera(shelfCam.pos, shelfCam.look, camera.aspect, shelfIdx);
   view.focusX = lerp(view.focusX, focusTarget(), 0.12);
   const t = active ? active.open : 0;
   updateReadCam();
@@ -426,7 +431,7 @@ function updateLabels() {
   const portrait = isPortrait();
   for (const b of books) {
     b.label.style.display = portrait && b.index !== shelfIdx ? 'none' : '';
-    const p = new THREE.Vector3(isPortrait() ? 0 : b.root.position.x, plank.position.y - 0.05, 0.3);
+    const p = new THREE.Vector3(b.root.position.x, b.root.position.y - b.H * 0.4, b.root.position.z);
     p.project(camera);
     b.label.style.left = `${(p.x * 0.5 + 0.5) * window.innerWidth}px`;
     b.label.style.top = `${(-p.y * 0.5 + 0.5) * window.innerHeight}px`;
@@ -657,7 +662,7 @@ canvas.addEventListener('pointerup', (ev) => {
   const hit = pick(ev);
   if (mode === 'shelf') {
     if (!hit?.book) return;
-    if (isPortrait() && hit.book.index !== shelfIdx) { shelfIdx = hit.book.index; updateDots(); return; }
+    if (!harbor && isPortrait() && hit.book.index !== shelfIdx) { shelfIdx = hit.book.index; updateDots(); return; }
     openBook(hit.book);
     return;
   }
@@ -734,7 +739,9 @@ window.addEventListener('orientationchange', () => setTimeout(layout, 300));
 
 // ================================================================== 시작
 async function init() {
-  const list = await (await fetch(BOOKS + 'index.json', { cache: 'no-cache' })).json();
+  const response = await fetch(BOOKS + 'index.json', { cache: 'no-cache' });
+  if (!response.ok) throw new Error(`팝업북 목록 요청 실패 (HTTP ${response.status})`);
+  const list = await response.json();
   plank = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 0.55), new THREE.MeshLambertMaterial({ color: 0x9a6a3e }));
   plank.position.z = 0;
   scene.add(plank);
@@ -748,10 +755,15 @@ async function init() {
     b.label.innerHTML = `${meta.title}<small>${meta.subtitle || ''}</small>`;
     labelsEl.appendChild(b.label);
   });
+  harbor = new HarborShelf(scene, books, layout);
+  labelsEl.style.visibility = 'hidden';
+  await harbor.init();
+  labelsEl.style.visibility = '';
   layout();
   // 책장 판은 읽기 모드에서 사라진다
   renderer.setAnimationLoop((now) => {
     tickTweens(now);
+    harbor.tick(now, active ? active.open : 0);
     for (const b of books) {
       b.hover = lerp(b.hover, b.hoverTarget, 0.15);
       applyPose(b);
@@ -759,7 +771,7 @@ async function init() {
       b.pop?.tick(now);
     }
     const t = active ? active.open : 0;
-    plank.visible = t < 0.98;
+    plank.visible = false;
     plank.position.z = -0.05 - t * 0.5;
     plank.position.y = -((books[0]?.H || 1) * shelfScale()) / 2 - 0.03 - t * 1.2;
     updateCamera();
@@ -772,8 +784,12 @@ async function init() {
   if (target) setTimeout(() => openBook(target), 400);
 }
 
-window.__bw = { CONFIG, books, get mode() { return mode; }, get active() { return active; }, go, openBook, closeBook };
+window.__bw = { CONFIG, books, get bookshelf() { return harbor?.design; }, get mode() { return mode; }, get active() { return active; }, go, openBook, closeBook };
 
 init().catch((e) => {
-  document.body.insertAdjacentHTML('beforeend', `<p style="position:fixed;top:45%;width:100%;text-align:center">책 목록을 불러오지 못했어요: ${e.message}</p>`);
+  console.error('팝업북 초기화 실패', e);
+  const message = document.createElement('p');
+  message.style.cssText = 'position:fixed;top:45%;width:100%;text-align:center';
+  message.textContent = `팝업북을 준비하지 못했어요: ${e.message}`;
+  document.body.appendChild(message);
 });

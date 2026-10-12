@@ -5,7 +5,7 @@
 //  - float(띄움): 세운 뒤 바닥에서 조금 떠서 스프링처럼 출렁인다
 // 좌표는 book.inner 기준. 쪽 평면은 z≈0, 책 아래 끝 y=-H/2, 위 끝 y=+H/2, 제본선 x=0.
 // 펼칠 때 뒤→앞 순서(order)로 120ms 간격 솟고, 넘기기 전에 0.25초에 접혀 내려간다.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../../v1/vendor/three.module.js';
 
 const STAGGER_MS = 120;
 const UP_MS = 700;

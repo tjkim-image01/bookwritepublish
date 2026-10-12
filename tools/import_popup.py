@@ -1,4 +1,4 @@
-"""팝업북 원본(project-popup/<id>)을 팝업 뷰어 책장(web/books-popup)으로 가져온다.
+"""팝업북 원본(project-popup/<id>)을 팝업 뷰어 책장(web/res/books-popup)으로 가져온다.
 
     python3 web/tools/import_popup.py project-popup/j001
 
@@ -157,7 +157,7 @@ def main(project_dir: str):
     if not pdfs:
         sys.exit(f"조판 PDF가 없습니다: {proj / 'output'}/*-print.pdf (build/build_book.py 먼저)")
 
-    dst = WEB / "books-popup" / bid
+    dst = WEB / "res" / "books-popup" / bid
     shutil.rmtree(dst, ignore_errors=True)
     for d in ("pages", "layers", "audio"):
         (dst / d).mkdir(parents=True)
@@ -214,7 +214,7 @@ def main(project_dir: str):
             "pageCount": count, "aspect": 1.0, "pages": pages, "states": states, "popup": True}
     (dst / "book.json").write_text(json.dumps(book, ensure_ascii=False, indent=1), encoding="utf-8")
 
-    idx_file = WEB / "books-popup" / "index.json"
+    idx_file = WEB / "res" / "books-popup" / "index.json"
     idx = json.loads(idx_file.read_text(encoding="utf-8")) if idx_file.exists() else []
     entry = {"id": bid, "title": m["title"], "subtitle": m.get("subtitle", ""), "cover": f"{bid}/{pages[0]}",
              "pageCount": count, "aspect": 1.0}

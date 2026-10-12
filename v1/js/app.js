@@ -1,5 +1,6 @@
 // 그림책 3D 뷰어 — 책장(표지 목록) → 책을 누르면 앞으로 나와 펼쳐짐 → 쪽을 눌러 한 장씩 넘김 → 글이 있는 쪽은 자동 낭독
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../../v1/vendor/three.module.js';
+import { HarborShelf } from '../../res/bookshelf/harbor.js';
 
 // 사용자 요청(2026-10-10 수정): 오른쪽(아래 귀퉁이)을 누르면 다음 장, 왼쪽을 누르면 앞 장
 const CONFIG = {
@@ -19,7 +20,7 @@ const TILTS = { front: 0, desk: -0.5 };   // 보기 모드: 정면 / 눕혀 보�
 const BAR_PX = 150;          // 하단 플레이어가 가리는 높이
 
 const $ = (s) => document.querySelector(s);
-const BOOKS = '../books/';   // v1·v2 가 함께 쓰는 책장 (web/books)
+const BOOKS = '../res/books/';   // v1·v2 가 함께 쓰는 책장 (web/res/books)
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -296,8 +297,10 @@ let mode = 'shelf';          // shelf | opening | reading | closing
 const shelfCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 const readCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 let plank;
+let harbor;
 
 function shelfPose(b) {
+  if (harbor) return harbor.pose(b.index, b.hover, b.away);
   const n = books.length, gap = 1.5;
   return { x: (b.index - (n - 1) / 2) * gap, y: 0.05 * b.hover - 1.6 * b.away, z: 0.12 * b.hover,
            rx: 0, ry: 0.32 * (1 - b.hover), s: 0.7 };
@@ -338,6 +341,7 @@ function layout() {
     plank.scale.x = Math.max(shelfW + 0.6, 2.4);
   }
 
+  if (harbor) harbor.camera(shelfCam.pos, shelfCam.look, camera.aspect);
   updateReadCam();
 }
 
@@ -358,6 +362,7 @@ function updateReadCam() {
 }
 
 function updateCamera() {
+  if (harbor) harbor.camera(shelfCam.pos, shelfCam.look, camera.aspect);
   const t = active ? active.open : 0;
   updateReadCam();
   camera.position.lerpVectors(shelfCam.pos, readCam.pos, t);
@@ -369,7 +374,7 @@ function updateCamera() {
 const labelsEl = $('#labels');
 function updateLabels() {
   for (const b of books) {
-    const p = new THREE.Vector3(b.root.position.x, plank.position.y - 0.05, 0.3);
+    const p = new THREE.Vector3(b.root.position.x, b.root.position.y - b.H * 0.4, b.root.position.z);
     p.project(camera);
     b.label.style.left = `${(p.x * 0.5 + 0.5) * window.innerWidth}px`;
     b.label.style.top = `${(-p.y * 0.5 + 0.5) * window.innerHeight}px`;
@@ -622,17 +627,22 @@ async function init() {
     b.label.innerHTML = `${meta.title}<small>${meta.subtitle || ''}</small>`;
     labelsEl.appendChild(b.label);
   });
+  harbor = new HarborShelf(scene, books, layout);
+  labelsEl.style.visibility = 'hidden';
+  await harbor.init();
+  labelsEl.style.visibility = '';
   layout();
   // 책장 판은 읽기 모드에서 사라진다
   renderer.setAnimationLoop((now) => {
     tickTweens(now);
+    harbor.tick(now, active ? active.open : 0);
     for (const b of books) {
       b.hover = lerp(b.hover, b.hoverTarget, 0.15);
       applyPose(b);
       b.updateCurls(now, b === active && mode === 'reading');
     }
     const t = active ? active.open : 0;
-    plank.visible = t < 0.98;
+    plank.visible = false;
     plank.position.z = -0.05 - t * 0.5;
     plank.position.y = -((books[0]?.H || 1) * 0.7) / 2 - 0.03 - t * 1.2;
     updateCamera();
@@ -645,7 +655,7 @@ async function init() {
   if (target) setTimeout(() => openBook(target), 400);
 }
 
-window.__bw = { CONFIG, books, get mode() { return mode; }, get active() { return active; }, go, openBook, closeBook };
+window.__bw = { CONFIG, books, get bookshelf() { return harbor?.design; }, get mode() { return mode; }, get active() { return active; }, go, openBook, closeBook };
 
 init().catch((e) => {
   document.body.insertAdjacentHTML('beforeend', `<p style="position:fixed;top:45%;width:100%;text-align:center">책 목록을 불러오지 못했어요: ${e.message}</p>`);

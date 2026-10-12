@@ -1,0 +1,9 @@
+#bookshelf-select { position:fixed;top:max(24px,env(safe-area-inset-top));right:24px;z-index:30;padding:10px 14px;border:1px solid #b79261;border-radius:12px;background:#fff8e9;color:#593a23;font:inherit;max-width:42vw; }
+#bookshelf-select[hidden] {display:none;}
+@media(max-width:600px) {#bookshelf-select {top:auto;bottom:max(24px,env(safe-area-inset-bottom));right:16px;}}
+
+body:not(.reading) .book-label {width:110px;white-space:normal;font-size:12px;line-height:1.4;text-align:center;padding:5px 7px;border-radius:8px;background:rgba(255,248,233,.88);}
+body:not(.reading) .book-label small {display:none;}
+
+#bookshelf-notice {position:fixed;bottom:78px;left:16px;right:16px;text-align:center;font-size:12px;pointer-events:none;color:#593a23;}
+body.reading #bookshelf-notice {display:none;}
